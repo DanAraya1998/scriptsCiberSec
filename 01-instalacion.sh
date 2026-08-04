@@ -136,9 +136,10 @@ prompt_luks_passphrase() {
 
     while true; do
         read -r -s -p "Passphrase LUKS2: " first_passphrase
-        printf '\n'
+        printf '\n' >&2
+
         read -r -s -p "Confirme la passphrase LUKS2: " second_passphrase
-        printf '\n'
+        printf '\n' >&2
 
         [[ -n "$first_passphrase" ]] || {
             warn "La passphrase no puede quedar vacia."
