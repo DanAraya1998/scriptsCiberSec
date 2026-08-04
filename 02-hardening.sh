@@ -1,19 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# 02-hardening.sh
-# Fortalecimiento reproducible de Arch Linux para el proyecto CY-502.
-#
-# Debe ejecutarse dentro del sistema instalado por 01-instalacion.sh, como root.
-# Cubre los criterios 3 al 15 del avance:
-#   - Actualizacion y revision de vulnerabilidades.
-#   - Firewall nftables con politica de entrada restrictiva.
-#   - SSH desactivado o endurecido con autenticacion exclusiva por llave.
-#   - Usuarios, sudo, registros persistentes, auditd y parametros sysctl.
-#   - AIDE, ClamAV, Fail2ban, revision de servicios y Snapper.
-#
-# El script es interactivo solo para seleccionar el usuario principal y decidir
-# si se habilitara SSH. Si SSH se habilita, exige al menos una llave publica.
-# ==============================================================================
 
 set -Eeuo pipefail
 IFS=$'\n\t'
