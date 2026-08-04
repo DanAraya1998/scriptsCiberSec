@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# 01-instalacion.sh
-# Instalacion reproducible de Arch Linux para el proyecto CY-502.
-#
-# Objetivo:
-#   - VM nueva de Oracle VirtualBox iniciada en modo UEFI.
-#   - Disco GPT dedicado: EFI de 1 GiB sin cifrar + raiz cifrada con LUKS2.
-#   - Btrfs: @, @home, @log y @snapshots.
-#   - systemd-boot, ZRAM, NetworkManager y usuario administrativo con sudo.
-#   - Entorno grafico XFCE con LightDM y utilidades de invitado de VirtualBox.
-#
-# ADVERTENCIA: el disco seleccionado se borra por completo.
-# Ejecutar desde la ISO oficial de Arch Linux, como root y con Internet.
-# ==============================================================================
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -144,6 +130,31 @@ validate_username() {
     [[ "$value" =~ ^[a-z_][a-z0-9_-]*$ ]]
 }
 
+prompt_luks_passphrase() {
+    local first_passphrase=""
+    local second_passphrase=""
+
+    while true; do
+        read -r -s -p "Passphrase LUKS2: " first_passphrase
+        printf '\n'
+        read -r -s -p "Confirme la passphrase LUKS2: " second_passphrase
+        printf '\n'
+
+        [[ -n "$first_passphrase" ]] || {
+            warn "La passphrase no puede quedar vacia."
+            continue
+        }
+
+        [[ "$first_passphrase" == "$second_passphrase" ]] || {
+            warn "Las passphrases no coinciden; intente de nuevo."
+            continue
+        }
+
+        printf '%s' "$first_passphrase"
+        return 0
+    done
+}
+
 check_environment() {
     info "Comprobando el entorno de instalacion"
 
@@ -272,6 +283,8 @@ detect_microcode() {
 }
 
 partition_and_encrypt() {
+    local luks_passphrase=""
+
     info "Creando tabla GPT y particiones"
 
     wipefs --all --force "$DISK"
@@ -291,9 +304,11 @@ EOF
 
     printf '\nDefina ahora la frase de paso de LUKS2. No se mostrara ni se guardara.\n'
     printf 'Use una frase larga y unica; sera necesaria en cada arranque.\n\n'
-    cryptsetup luksFormat --type luks2 --verify-passphrase --label CY502_LUKS "$ROOT_PART"
-    cryptsetup open "$ROOT_PART" "$CRYPT_NAME"
+    luks_passphrase="$(prompt_luks_passphrase)"
+    printf '%s' "$luks_passphrase" | cryptsetup luksFormat --type luks2 --label CY502_LUKS --key-file=- "$ROOT_PART"
+    printf '%s' "$luks_passphrase" | cryptsetup open --key-file=- "$ROOT_PART" "$CRYPT_NAME"
     CRYPT_OPENED=1
+    unset luks_passphrase
 
     cryptsetup isLuks "$ROOT_PART"
     ok "Particion raiz protegida con LUKS2."
