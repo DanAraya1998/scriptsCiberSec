@@ -526,8 +526,8 @@ EOF
         printf 'linux   /vmlinuz-linux\n'
         [[ -n "$MICROCODE_IMAGE" ]] && printf 'initrd  /%s\n' "$MICROCODE_IMAGE"
         printf 'initrd  /initramfs-linux.img\n'
-        printf 'options rd.luks.name=%s=%s root=/dev/mapper/%s rootfstype=btrfs rootflags=subvol=@ rw\n' \
-            "$luks_uuid" "$CRYPT_NAME" "$CRYPT_NAME"
+        printf 'options rd.luks.name=%s=%s root=/dev/mapper/%s rootfstype=btrfs rootflags=subvol=@ rw rd.vconsole.keymap=%s vconsole.keymap=%s\n' \
+            "$luks_uuid" "$CRYPT_NAME" "$CRYPT_NAME" "$CONSOLE_KEYMAP" "$CONSOLE_KEYMAP"
     } > "$boot_entry"
 
     {
@@ -535,8 +535,8 @@ EOF
         printf 'linux   /vmlinuz-linux\n'
         [[ -n "$MICROCODE_IMAGE" ]] && printf 'initrd  /%s\n' "$MICROCODE_IMAGE"
         printf 'initrd  /initramfs-linux-fallback.img\n'
-        printf 'options rd.luks.name=%s=%s root=/dev/mapper/%s rootfstype=btrfs rootflags=subvol=@ rw\n' \
-            "$luks_uuid" "$CRYPT_NAME" "$CRYPT_NAME"
+        printf 'options rd.luks.name=%s=%s root=/dev/mapper/%s rootfstype=btrfs rootflags=subvol=@ rw rd.vconsole.keymap=%s vconsole.keymap=%s\n' \
+            "$luks_uuid" "$CRYPT_NAME" "$CRYPT_NAME" "$CONSOLE_KEYMAP" "$CONSOLE_KEYMAP"
     } > "$fallback_entry"
 
     chmod 0600 \
