@@ -257,22 +257,23 @@ update_and_install_packages() {
     require_command visudo
 
     printf '\nRevision de vulnerabilidades conocidas:\n'
+
     set +e
-    arch-audit
+    audit_output="$(arch-audit --color never 2>&1)"
     audit_status=$?
     set -e
 
-    case "$audit_status" in
-        0)
-            ok "arch-audit no reporto vulnerabilidades conocidas."
-            ;;
-        1)
-            warn "arch-audit encontro paquetes afectados. El resultado quedo en el registro."
-            ;;
-        *)
-            warn "arch-audit termino con codigo $audit_status. Revise conectividad y salida."
-            ;;
-    esac
+    if [[ -n "$audit_output" ]]; then
+        printf '%s\n' "$audit_output"
+    fi
+
+    if (( audit_status != 0 )); then
+        warn "arch-audit termino con codigo $audit_status. Revise conectividad y salida."
+    elif [[ -n "$audit_output" ]]; then
+        warn "arch-audit encontro paquetes afectados. El resultado quedo en el registro."
+    else
+        ok "arch-audit no reporto vulnerabilidades conocidas."
+    fi
 
     ok "Sistema actualizado y herramientas instaladas."
 }
@@ -344,7 +345,7 @@ configure_sysctl() {
     info "Endureciendo parametros del kernel y de red"
 
     cat > "$SYSCTL_FILE" <<'EOF'
-# CY-502 - reduccion de exposicion del kernel
+# Reduccion de exposicion del kernel
 kernel.dmesg_restrict = 1
 kernel.kptr_restrict = 2
 kernel.randomize_va_space = 2
@@ -357,7 +358,7 @@ fs.protected_symlinks = 1
 fs.protected_fifos = 2
 fs.protected_regular = 2
 
-# CY-502 - proteccion IPv4
+# Proteccion IPv4
 net.ipv4.ip_forward = 0
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
@@ -375,7 +376,7 @@ net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
 
-# CY-502 - proteccion IPv6 sin deshabilitar su conectividad
+# Proteccion IPv6 sin deshabilitar su conectividad
 net.ipv6.conf.all.forwarding = 0
 net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
