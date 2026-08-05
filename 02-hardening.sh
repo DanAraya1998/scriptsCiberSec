@@ -1059,13 +1059,27 @@ EOF
         chmod 0600 "$checksum_file"
     fi
 
-    set +e
-    aide --check --limit='/etc/(passwd|group|shadow|sudoers)'
-    check_status=$?
-    set -e
-    if (( check_status != 0 )); then
-        warn "La comprobacion limitada de AIDE reporto cambios o un error (codigo $check_status)."
+    if aide --check \
+        --limit='^/etc/(passwd|group|shadow|sudoers)(/|$)'; then
+        check_status=0
+    else
+        check_status=$?
     fi
+
+    case "$check_status" in
+        0)
+            ok "La comprobacion limitada de AIDE no encontro diferencias."
+            ;;
+
+        1|2|3|4|5|6|7)
+            warn "AIDE detecto diferencias respecto de la linea base (codigo $check_status)."
+            warn "El resultado no representa un error de ejecucion y quedo registrado para revision."
+            ;;
+
+        *)
+            die "AIDE no pudo completar la comprobacion limitada (codigo $check_status)."
+            ;;
+    esac
 
     ok "Linea base de AIDE protegida y verificacion diaria programada."
 }
