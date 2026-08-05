@@ -1109,6 +1109,7 @@ write_project_state() {
 }
 
 generate_evidence() {
+    local ssh_effective = 0
     local audit_status=0
 
     info "Generando evidencias tecnicas de la aplicacion"
@@ -1116,7 +1117,7 @@ generate_evidence() {
     {
         printf 'RESUMEN DE HARDENING\n'
         printf 'Fecha: %s\n' "$(date --iso-8601=seconds)"
-        printf 'Hostname: %s\n' "$(hostname)"
+        printf 'Hostname: %s\n' "$(hostnamectl --static)"
         printf 'Usuario principal: %s\n' "$PRIMARY_USER"
         printf 'Modo SSH: %s\n' "$([[ $SSH_ENABLED == 1 ]] && printf key-only || printf disabled)"
         printf '\n'
@@ -1141,9 +1142,25 @@ generate_evidence() {
         printf 'Estado de sshd:\n'
         systemctl is-enabled sshd.service 2>&1 || true
         systemctl is-active sshd.service 2>&1 || true
+
         printf '\nConfiguracion efectiva relevante:\n'
-        sshd -T -C "user=$PRIMARY_USER,host=localhost,addr=127.0.0.1" |
-            grep -E '^(permitrootlogin|pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|authenticationmethods|maxauthtries|disableforwarding|allowusers) '
+
+        if ssh_effective="$(
+            sshd -T -C \
+                "user=$PRIMARY_USER,host=localhost,addr=127.0.0.1" \
+                2>&1
+        )"; then
+            if ! grep -E \
+                '^(permitrootlogin|pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|authenticationmethods|maxauthtries|disableforwarding|allowusers) ' \
+                <<< "$ssh_effective"; then
+                printf '%s\n' \
+                    'No se encontraron los parametros esperados en la salida de sshd -T.'
+            fi
+        else
+            printf '%s\n' \
+                'No se pudo obtener la configuracion efectiva de OpenSSH:'
+            printf '%s\n' "$ssh_effective"
+        fi
     } > "$EVIDENCE_DIR/04-ssh.txt"
 
     {
@@ -1264,7 +1281,7 @@ EOF
     printf '\n\033[1;32m============================================================\033[0m\n'
     printf '\033[1;32m HARDENING FINALIZADO CORRECTAMENTE\033[0m\n'
     printf '\033[1;32m============================================================\033[0m\n'
-    printf 'Equipo:       %s\n' "$(hostname)"
+    printf 'Equipo:       %s\n' "$(hostnamectl --static)"
     printf 'Usuario:      %s\n' "$PRIMARY_USER"
     printf 'SSH:          %s\n' "$([[ $SSH_ENABLED == 1 ]] && printf 'activo, solo llave' || printf 'desactivado')"
     printf 'Registro:     %s\n' "$LOG_FILE"
