@@ -73,17 +73,52 @@ require_command() {
 }
 
 cleanup_aide_builder() {
+    local passwd_entry=""
+    local account_home=""
+    local account_shell=""
+    local cleanup_failed=0
+
     set +e
 
-    if (( AIDE_BUILD_USER_CREATED == 1 )); then
-        if userdel --remove "$AIDE_BUILD_USER" >/dev/null 2>&1; then
-            AIDE_BUILD_USER_CREATED=0
-        else
-            warn "No se pudo eliminar el usuario temporal $AIDE_BUILD_USER. Reviselo manualmente."
+    passwd_entry="$(getent passwd "$AIDE_BUILD_USER" 2>/dev/null)"
+
+    if [[ -n "$passwd_entry" ]]; then
+        IFS=: read -r _ _ _ _ _ account_home account_shell \
+            <<< "$passwd_entry"
+
+        if [[ "$account_home" != "$AIDE_BUILD_HOME" ||
+              "$account_shell" != "/usr/bin/nologin" ]]; then
+            warn "La cuenta $AIDE_BUILD_USER no coincide con la cuenta temporal esperada; no se eliminara."
+            set -e
+            return 0
+        fi
+
+        pkill -TERM -u "$AIDE_BUILD_USER" >/dev/null 2>&1 || true
+        sleep 1
+        pkill -KILL -u "$AIDE_BUILD_USER" >/dev/null 2>&1 || true
+
+        if ! userdel --force --remove "$AIDE_BUILD_USER" \
+            >/dev/null 2>&1; then
+            cleanup_failed=1
         fi
     fi
 
+    if getent group "$AIDE_BUILD_USER" >/dev/null 2>&1; then
+        groupdel "$AIDE_BUILD_USER" >/dev/null 2>&1 || true
+    fi
+
+    if [[ -e "$AIDE_BUILD_HOME" || -L "$AIDE_BUILD_HOME" ]]; then
+        rm -rf -- "$AIDE_BUILD_HOME" || cleanup_failed=1
+    fi
+
+    AIDE_BUILD_USER_CREATED=0
+
+    if (( cleanup_failed == 1 )); then
+        warn "La limpieza del entorno temporal de AIDE no pudo completarse totalmente."
+    fi
+
     set -e
+    return 0
 }
 
 on_error() {
@@ -122,7 +157,7 @@ set_assignment() {
     else
         printf '%s="%s"\n' "$key" "$value" >> "$file"
     fi
-}
+}cleanup_aide
 
 start_logging() {
     local timestamp=""
