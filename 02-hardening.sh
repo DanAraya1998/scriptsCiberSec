@@ -1223,7 +1223,12 @@ verify_hardening() {
 
     visudo -cf /etc/sudoers
     nft --check --file "$NFTABLES_FILE"
-    systemctl is-active --quiet nftables.service
+    systemctl is-enabled --quiet nftables.service
+    nft list table inet cy502_filter >/dev/null
+
+    [[ "$(systemctl show nftables.service \
+        --property=Result --value)" == "success" ]] ||
+        die "nftables.service no finalizo correctamente."
     systemctl is-active --quiet auditd.service
     systemctl is-active --quiet systemd-journald.service
     systemctl is-active --quiet clamav-freshclam.service
