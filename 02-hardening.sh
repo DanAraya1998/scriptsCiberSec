@@ -791,6 +791,9 @@ install_aide_from_source() {
     local key_url=""
     local imported_fingerprints=""
     local package_path=""
+    local candidate=""
+    local -a package_paths=()
+    
 
     command -v aide >/dev/null 2>&1 && return
 
@@ -879,18 +882,34 @@ EOF
             makepkg --cleanbuild --clean --force --noconfirm
     )
 
-    package_path="$(
+    mapfile -t package_paths < <(
     cd "$AIDE_BUILD_HOME"
-    runuser -u "$AIDE_BUILD_USER" -- env HOME="$AIDE_BUILD_HOME" \
+    runuser -u "$AIDE_BUILD_USER" -- env \
+        HOME="$AIDE_BUILD_HOME" \
         makepkg --packagelist
-)"
+    )
+
+    (( ${#package_paths[@]} > 0 )) ||
+        die "makepkg no devolvio ningun paquete de AIDE."
+
+    for candidate in "${package_paths[@]}"; do
+        case "$(basename "$candidate")" in
+            aide-debug-*)
+                continue
+                ;;
+            aide-*.pkg.tar.*)
+                [[ -z "$package_path" ]] ||
+                    die "Se encontro mas de un paquete principal de AIDE."
+                package_path="$candidate"
+                ;;
+        esac
+    done
 
     [[ -n "$package_path" ]] ||
-        die "makepkg no devolvio la ruta del paquete de AIDE."
+        die "No se identifico el paquete principal de AIDE."
 
-    [[ "$package_path" != *$'\n'* ]] ||
-        die "La compilacion genero mas de un paquete; revise: $package_path"
-    [[ -f "$package_path" ]] || die "No se encontro el paquete compilado de AIDE."
+    [[ -f "$package_path" ]] ||
+        die "No se encontro el paquete compilado de AIDE: $package_path"
 
     pacman -U --noconfirm "$package_path"
     pacman -Q aide
