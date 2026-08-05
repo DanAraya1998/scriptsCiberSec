@@ -284,7 +284,7 @@ configure_privileges() {
     usermod -aG wheel "$PRIMARY_USER"
 
     cat > /etc/sudoers.d/10-wheel <<'EOF'
-# Administradores autorizados del proyecto CY-502.
+# Administradores autorizados.
 Defaults use_pty
 Defaults passwd_tries=3
 Defaults timestamp_timeout=5
@@ -474,7 +474,7 @@ configure_ssh() {
     install_authorized_key
     install -d -m 0755 /etc/ssh/sshd_config.d
     cat > "$SSH_DROPIN" <<EOF
-# CY-502 - acceso remoto restringido
+# Acceso remoto restringido
 PermitRootLogin no
 PubkeyAuthentication yes
 PasswordAuthentication no
@@ -643,7 +643,10 @@ configure_auditd() {
     shopt -u nullglob
 
     cat > "$AUDIT_RULES_FILE" <<'EOF'
-# CY-502 - capacidad y comportamiento ante errores
+# - eliminar reglas activas antes de reconstruir la politica
+-D
+
+# - capacidad y comportamiento ante errores
 -b 8192
 --backlog_wait_time 60000
 -f 1
@@ -702,7 +705,7 @@ configure_clamav() {
 
     cat > /etc/systemd/system/cy502-clamav-scan.service <<'EOF'
 [Unit]
-Description=CY-502 - analisis antimalware semanal de /home
+Description=Analisis antimalware semanal de /home
 After=local-fs.target clamav-freshclam.service
 
 [Service]
@@ -719,7 +722,7 @@ EOF
 
     cat > /etc/systemd/system/cy502-clamav-scan.timer <<'EOF'
 [Unit]
-Description=CY-502 - programacion de analisis antimalware
+Description=Programacion de analisis antimalware
 
 [Timer]
 OnCalendar=Sun *-*-* 03:00:00
@@ -942,7 +945,7 @@ EOF
 
     cat > /etc/systemd/system/cy502-aide-check.service <<'EOF'
 [Unit]
-Description=CY-502 - verificacion de integridad con AIDE
+Description=Verificacion de integridad con AIDE
 After=local-fs.target
 
 [Service]
@@ -959,7 +962,7 @@ EOF
 
     cat > /etc/systemd/system/cy502-aide-check.timer <<'EOF'
 [Unit]
-Description=CY-502 - programacion diaria de AIDE
+Description=Programacion diaria de AIDE
 
 [Timer]
 OnCalendar=daily
@@ -1051,12 +1054,12 @@ create_initial_snapshot() {
 
     info "Creando snapshot del sistema endurecido"
 
-    if snapper -c root list | grep -Fq 'CY-502 - hardening inicial'; then
+    if snapper -c root list | grep -Fq 'Hardening inicial'; then
         warn "Ya existe el snapshot inicial de hardening; no se duplicara."
     else
         snapshot_number="$(
             snapper -c root create --type single --cleanup-algorithm number \
-                --description 'CY-502 - hardening inicial' --print-number
+                --description 'Hardening inicial' --print-number
         )"
         [[ "$snapshot_number" =~ ^[0-9]+$ ]] || die "Snapper no devolvio un numero valido."
         ok "Snapshot inicial creado con numero $snapshot_number."
@@ -1086,7 +1089,7 @@ generate_evidence() {
     info "Generando evidencias tecnicas de la aplicacion"
 
     {
-        printf 'PROYECTO CY-502 - RESUMEN DE HARDENING\n'
+        printf 'RESUMEN DE HARDENING\n'
         printf 'Fecha: %s\n' "$(date --iso-8601=seconds)"
         printf 'Hostname: %s\n' "$(hostname)"
         printf 'Usuario principal: %s\n' "$PRIMARY_USER"
@@ -1252,7 +1255,7 @@ main() {
     trap 'on_error $? $LINENO' ERR
     trap 'on_signal' INT TERM
 
-    printf '\033[1;36mArch Linux CY-502 - Hardening %s\033[0m\n' "$SCRIPT_VERSION"
+    printf '\033[1;36mArch Linux - Hardening %s\033[0m\n' "$SCRIPT_VERSION"
     printf 'Fecha: %s\n' "$(date --iso-8601=seconds)"
 
     check_environment
