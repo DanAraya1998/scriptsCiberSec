@@ -157,7 +157,7 @@ set_assignment() {
     else
         printf '%s="%s"\n' "$key" "$value" >> "$file"
     fi
-}cleanup_aide
+}
 
 start_logging() {
     local timestamp=""
