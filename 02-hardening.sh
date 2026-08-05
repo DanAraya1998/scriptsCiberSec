@@ -442,7 +442,9 @@ install_authorized_key() {
     local authorized_keys="$ssh_dir/authorized_keys"
     local key_line=""
 
-    (( SSH_ENABLED == 1 )) || return
+    if (( SSH_ENABLED != 1 )); then
+        return 0
+    fi
 
     install -d -m 0700 -o "$PRIMARY_USER" -g "$PRIMARY_GROUP" "$ssh_dir"
     touch "$authorized_keys"
@@ -453,11 +455,15 @@ install_authorized_key() {
         while IFS= read -r key_line || [[ -n "$key_line" ]]; do
             [[ -n "$key_line" ]] || continue
             [[ "$key_line" =~ ^[[:space:]]*# ]] && continue
-            grep -qxF -- "$key_line" "$authorized_keys" || printf '%s\n' "$key_line" >> "$authorized_keys"
+
+            grep -qxF -- "$key_line" "$authorized_keys" ||
+                printf '%s\n' "$key_line" >> "$authorized_keys"
         done < "$SSH_KEY_FILE"
     fi
 
-    ssh-keygen -l -f "$authorized_keys" || die "No quedo ninguna llave valida en authorized_keys."
+    ssh-keygen -l -f "$authorized_keys" ||
+        die "No quedo ninguna llave valida en authorized_keys."
+
     chown "$PRIMARY_USER:$PRIMARY_GROUP" "$authorized_keys"
     chmod 0600 "$authorized_keys"
 }
