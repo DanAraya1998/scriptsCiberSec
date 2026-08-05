@@ -396,27 +396,7 @@ EOF
     ok "El journal persistira despues de los reinicios."
 }
 
-configure_sysctl() {if aide --check \
-    --limit='^/etc/(passwd|group|shadow|sudoers)(/|$)'; then
-    check_status=0
-else
-    check_status=$?
-fi
-
-case "$check_status" in
-    0)
-        ok "La comprobacion limitada de AIDE no encontro diferencias."
-        ;;
-
-    1|2|3|4|5|6|7)
-        warn "AIDE detecto diferencias respecto de la linea base (codigo $check_status)."
-        warn "El resultado no representa un error de ejecucion y quedo registrado para revision."
-        ;;
-
-    *)
-        die "AIDE no pudo completar la comprobacion limitada (codigo $check_status)."
-        ;;
-esac
+configure_sysctl() {
     info "Endureciendo parametros del kernel y de red"
 
     cat > "$SYSCTL_FILE" <<'EOF'
