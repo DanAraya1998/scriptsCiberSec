@@ -880,10 +880,16 @@ EOF
     )
 
     package_path="$(
-        cd "$AIDE_BUILD_HOME"
-        runuser -u "$AIDE_BUILD_USER" -- env HOME="$AIDE_BUILD_HOME" \
-            makepkg --packagelist | head -n 1
-    )"
+    cd "$AIDE_BUILD_HOME"
+    runuser -u "$AIDE_BUILD_USER" -- env HOME="$AIDE_BUILD_HOME" \
+        makepkg --packagelist
+)"
+
+    [[ -n "$package_path" ]] ||
+        die "makepkg no devolvio la ruta del paquete de AIDE."
+
+    [[ "$package_path" != *$'\n'* ]] ||
+        die "La compilacion genero mas de un paquete; revise: $package_path"
     [[ -f "$package_path" ]] || die "No se encontro el paquete compilado de AIDE."
 
     pacman -U --noconfirm "$package_path"
