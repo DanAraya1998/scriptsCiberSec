@@ -215,22 +215,22 @@ collect_primary_user() {
 
 update_and_install_packages() {
     local -a packages=(
-        acl
-        arch-audit
-        audit
-        base-devel
-        clamav
-        curl
-        e2fsprogs
-        fail2ban
-        gnupg
-        libelf
-        mhash
-        nftables
-        openssh
-        pcre
-        snap-pac
-        snapper
+    acl
+    arch-audit
+    audit
+    base-devel
+    clamav
+    curl
+    e2fsprogs
+    fail2ban
+    gnupg
+    libelf
+    libgcrypt
+    nftables
+    openssh
+    pcre2
+    snap-pac
+    snapper
     )
     local audit_status=0
 
@@ -811,7 +811,7 @@ pkgdesc="A file and directory integrity checker"
 arch=(x86_64)
 url="https://aide.github.io/"
 license=(GPL-2.0-only)
-depends=(acl e2fsprogs libelf mhash pcre)
+depends=(acl e2fsprogs libelf libgcrypt pcre2)
 source=(
   "https://github.com/aide/aide/releases/download/v\${pkgver}/aide-\${pkgver}.tar.gz"
   "https://github.com/aide/aide/releases/download/v\${pkgver}/aide-\${pkgver}.tar.gz.asc"
@@ -824,14 +824,16 @@ validpgpkeys=('$AIDE_SIGNING_KEY')
 
 build() {
   cd "aide-\${pkgver}"
-  ./configure \\
-    --prefix=/usr \\
-    --sysconfdir=/etc \\
-    --with-posix-acl \\
-    --with-xattr \\
-    --with-zlib \\
-    --with-e2fsattrs \\
-    --with-curl \\
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --without-nettle \
+    --with-gcrypt \
+    --with-posix-acl \
+    --with-xattr \
+    --with-zlib \
+    --with-e2fsattrs \
+    --with-curl \
     --disable-static
   make
 }
